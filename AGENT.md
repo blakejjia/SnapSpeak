@@ -7,8 +7,8 @@ Welcome to the **Pic-Reader** project! This file serves as the system manual and
 ## 1. Project Overview
 
 **Pic-Reader** is a picture-to-voice web application structured as a monorepo:
-- **Frontend**: A Node.js web application (Next.js) that provides a user-friendly UI to upload pictures or capture images using a camera. It sends the image, user prompts, and "跟读" (read-along) settings to the backend, receives the generated MP3, and plays it.
-- **Backend**: A Python application using LangChain, Google Gemini (`gemini-2.0-flash-lite`), and Google TTS (Text-to-Speech) to parse the image, extract a structured list of sentences/words and their corresponding languages, convert them to voice clips, and stitch them into a single audio file with customizable timing intervals.
+- **Frontend**: A Node.js web application (Next.js) that provides a user-friendly UI to upload pictures or capture images using a camera. It sends the image, user prompts, and "跟读" (read-along) settings to the backend, receives the generated MP3, plays it, and allows downloading it. Settings are persisted in the browser's `localStorage`.
+- **Backend**: A Python application using LangChain, Google Gemini (`gemini-2.0-flash-lite`), and Microsoft Neural TTS (`edge-tts`) to parse the image, extract a structured list of sentences/words and their corresponding languages, convert them to natural voice clips, and stitch them into a single audio file with customizable timing intervals.
 
 ---
 
@@ -27,7 +27,7 @@ pic-reader/
 │           └── globals.css   # Custom CSS theme (glassmorphism)
 │
 ├── backend/                  # Python LangChain Backend
-│   ├── requirements.txt      # Python dependencies (fastapi, langchain, gtts, pydub)
+│   ├── requirements.txt      # Python dependencies (fastapi, langchain, edge-tts, pydub, audioop-lts)
 │   ├── main.py               # FastAPI server & route handlers
 │   ├── .env.example          # Environment variables template
 │   ├── services/
@@ -52,6 +52,8 @@ The frontend sends a `POST` request to the backend with:
 - `prompt`: String indicating what words or sentences to extract (e.g. "Extract all English words and translation", "Extract all French dialog sentences").
 - `read_along`: Boolean indicating if "跟读" (read-along / repeat-after-me) mode is active.
 
+Settings (`prompt` and `read_along`) are saved in the client browser's `localStorage` so they do not need to be re-entered.
+
 ### B. Backend Stage 1: AI structured text extraction
 The backend uses LangChain with Gemini (Multimodal model) to extract a structured list.
 Expected JSON Schema for the extraction:
@@ -65,11 +67,12 @@ Expected JSON Schema for the extraction:
   ]
 }
 ```
-*Note:* The `language` field must be a valid BCP 47 language code supported by Google TTS (e.g. `en`, `zh-CN`, `fr`, `ja`).
+*Note:* The `language` field must be a valid BCP 47 language code supported by the mapping to Microsoft edge-tts voices (e.g. `en`, `zh`, `ja`, `ko`, `fr`, `es`, `de`, `ru`, `it`).
 
 ### C. Backend Stage 2: Audio Synthesis & Stitching
 1. For each item in the extracted list:
-   - Call Google TTS (`gTTS` library or Google TTS API) in the specified language to generate a temporary MP3 file.
+   - Map the language to a high-quality neural voice (e.g., `en-US-EmmaNeural` for English, `zh-CN-XiaoxiaoNeural` for Chinese, `ja-JP-NanamiNeural` for Japanese).
+   - Call the `edge-tts` generator to synthesize a temporary MP3 file.
    - Load the audio clip using `pydub`.
    - Calculate the required silence interval following the clip:
      - **If `read_along` is true**: Interval = (Duration of current clip) + 1.0 second.
@@ -77,7 +80,8 @@ Expected JSON Schema for the extraction:
 2. Concatenate all audio clips and their corresponding silences into a single audio segment.
 3. Export the combined segment as a master MP3.
 4. Clean up temporary audio files.
-5. Return the master MP3 to the user (either direct stream or return a static file path).
+5. Return the master MP3 relative retrieval path (`/api/audio/{filename}`) to the frontend.
+6. The frontend renders a custom glassmorphic audio deck that includes play controls, playback timeline, and a download button to download the stitched audio file.
 
 ---
 
