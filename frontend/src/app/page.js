@@ -66,6 +66,34 @@ export default function Home() {
     };
   }, []);
 
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedPrompt = localStorage.getItem('pic_reader_prompt');
+      if (savedPrompt !== null) {
+        setPrompt(savedPrompt);
+      }
+      const savedReadAlong = localStorage.getItem('pic_reader_read_along');
+      if (savedReadAlong !== null) {
+        setReadAlong(savedReadAlong === 'true');
+      }
+    }
+  }, []);
+
+  // Save prompt to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pic_reader_prompt', prompt);
+    }
+  }, [prompt]);
+
+  // Save read_along to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pic_reader_read_along', readAlong.toString());
+    }
+  }, [readAlong]);
+
   // Reset audio player state when audioUrl changes
   useEffect(() => {
     setIsPlaying(false);
