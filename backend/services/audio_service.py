@@ -1,9 +1,22 @@
 import os
 import uuid
 from typing import List
-from gtts import gTTS
+import edge_tts
 from pydub import AudioSegment
 from backend.services.langchain_service import ExtractedItem
+
+# Default voice mapping for languages
+VOICE_MAPPING = {
+    "en": "en-US-EmmaNeural",
+    "zh": "zh-CN-XiaoxiaoNeural",
+    "ja": "ja-JP-NanamiNeural",
+    "ko": "ko-KR-SunHiNeural",
+    "fr": "fr-FR-DeniseNeural",
+    "es": "es-ES-ElviraNeural",
+    "de": "de-DE-KatjaNeural",
+    "ru": "ru-RU-SvetlanaNeural",
+    "it": "it-IT-ElsaNeural",
+}
 
 class AudioService:
     def __init__(self):
@@ -11,7 +24,15 @@ class AudioService:
         self.temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "temp")
         os.makedirs(self.temp_dir, exist_ok=True)
         
-    def generate_stitched_audio(self, items: List[ExtractedItem], read_along: bool) -> str:
+    def _get_voice(self, lang: str) -> str:
+        """
+        Maps a language code to a high-quality edge-tts neural voice.
+        """
+        # Normalize: e.g., 'en-US' -> 'en', 'ZH' -> 'zh'
+        lang_normalized = lang.lower().split('-')[0].split('_')[0]
+        return VOICE_MAPPING.get(lang_normalized, "en-US-EmmaNeural")
+        
+    async def generate_stitched_audio(self, items: List[ExtractedItem], read_along: bool) -> str:
         """
         Synthesizes audio for each item, calculates gaps based on read_along mode,
         stitches the items together, and returns the path to the resulting MP3 file.
@@ -24,12 +45,15 @@ class AudioService:
         
         try:
             for idx, item in enumerate(items):
-                # Generate audio using gTTS
-                tts = gTTS(text=item.text, lang=item.language, slow=False)
+                # Map language to a natural-sounding neural voice
+                voice = self._get_voice(item.language)
                 
                 temp_filename = f"temp_{uuid.uuid4().hex}_{idx}.mp3"
                 temp_filepath = os.path.join(self.temp_dir, temp_filename)
-                tts.save(temp_filepath)
+                
+                # Generate audio using edge-tts
+                communicate = edge_tts.Communicate(item.text, voice)
+                await communicate.save(temp_filepath)
                 temp_files.append(temp_filepath)
                 
                 # Load the clip with pydub

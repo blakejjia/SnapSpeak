@@ -44,7 +44,7 @@ async def process_image(request: ProcessImageRequest):
             raise HTTPException(status_code=422, detail="No text items could be extracted from the image.")
             
         # 2. TTS and stitching
-        audio_filepath = audio_service.generate_stitched_audio(
+        audio_filepath = await audio_service.generate_stitched_audio(
             items=extraction.items,
             read_along=request.read_along
         )

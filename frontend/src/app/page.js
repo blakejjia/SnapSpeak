@@ -488,6 +488,18 @@ export default function Home() {
                         )}
                       </button>
                       
+                      <a 
+                        href={audioUrl} 
+                        download 
+                        className="audio-download-btn" 
+                        title="Download Audio"
+                        aria-label="Download Audio"
+                      >
+                        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                      </a>
+                      
                       <div className="audio-timeline-container">
                         <div className="audio-progress-bar-bg" onClick={handleProgressClick}>
                           <div 
