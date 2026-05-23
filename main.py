@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-from backend.services.langchain_service import langchain_service, ExtractionResponse
-from backend.services.audio_service import audio_service
+from services.langchain_service import langchain_service, ExtractionResponse
+from services.audio_service import audio_service
 
 app = FastAPI(title="Pic-Reader API")
 
@@ -99,4 +99,4 @@ if __name__ == "__main__":
     # Use environment PORT or default to 8000
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
-    uvicorn.run("backend.main:app", host=host, port=port, reload=True)
+    uvicorn.run("main:app", host=host, port=port, reload=True)

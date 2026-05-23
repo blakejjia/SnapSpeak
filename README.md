@@ -6,8 +6,9 @@ The frontend is served statically directly by the FastAPI backend, making this a
 
 ## Repository Layout
 
-- **`backend/`**: Python FastAPI backend incorporating LangChain and Audio Synthesis logic.
-  - **`backend/static/`**: HTML/CSS/JS frontend assets served statically.
+- **`main.py`**: Entrypoint for the FastAPI application.
+- **`services/`**: LangChain and Audio Synthesis logic.
+- **`static/`**: HTML/CSS/JS frontend assets served statically.
 - **`AGENT.md`**: Developer and Agent architectural guidelines.
 
 ## Quick Start
@@ -16,10 +17,9 @@ The frontend is served statically directly by the FastAPI backend, making this a
 - **Python 3.9+**
 - **FFmpeg**: Required by `pydub` for audio stitching. Ensure `ffmpeg` is installed and added to your system's PATH.
 
-### Setup & Run
-1. Navigate to the backend folder, create a virtual environment, and activate it:
+### Setup & Run (Standard Python)
+1. Create a virtual environment and activate it:
    ```bash
-   cd backend
    python -m venv .venv
    
    # On Windows (PowerShell)
@@ -33,9 +33,22 @@ The frontend is served statically directly by the FastAPI backend, making this a
    ```bash
    pip install -r requirements.txt
    ```
-3. Configure environment variables in `backend/.env` (copy from `backend/.env.example` if not already present).
-4. Run the application from the repository root:
+3. Configure environment variables in `.env` (copy from `.env.example` if not already present).
+4. Run the application:
    ```bash
-   python -m backend.main
+   python main.py
    ```
 5. Access the application in your browser at `http://localhost:8000`.
+
+### Setup & Run (Using uv)
+If you are using **`uv`**, running is even easier:
+1. Initialize the uv project (first time only):
+   ```bash
+   uv init --bare
+   uv add -r requirements.txt
+   ```
+2. Run the application:
+   ```bash
+   uv run python main.py
+   ```
+3. Access the application in your browser at `http://localhost:8000`.

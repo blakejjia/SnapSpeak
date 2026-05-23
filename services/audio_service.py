@@ -3,7 +3,7 @@ import uuid
 from typing import List
 import edge_tts
 from pydub import AudioSegment
-from backend.services.langchain_service import ExtractedItem
+from services.langchain_service import ExtractedItem
 
 # Default voice mapping for languages
 VOICE_MAPPING = {
