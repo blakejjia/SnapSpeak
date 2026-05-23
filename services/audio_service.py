@@ -32,7 +32,7 @@ class AudioService:
         lang_normalized = lang.lower().split('-')[0].split('_')[0]
         return VOICE_MAPPING.get(lang_normalized, "en-US-EmmaNeural")
         
-    async def generate_stitched_audio(self, items: List[ExtractedItem], read_along: bool) -> str:
+    async def generate_stitched_audio(self, items: List[ExtractedItem], read_along: bool, voice_speed: float = 1.0) -> str:
         """
         Synthesizes audio for each item, calculates gaps based on read_along mode,
         stitches the items together, and returns the path to the resulting MP3 file.
@@ -43,6 +43,14 @@ class AudioService:
         combined_audio = AudioSegment.empty()
         temp_files = []
         
+        # Convert float speed to edge-tts rate format, e.g. 1.0 -> "+0%", 1.25 -> "+25%", 0.85 -> "-15%"
+        if voice_speed >= 1.0:
+            percentage = int(round((voice_speed - 1.0) * 100))
+            rate = f"+{percentage}%"
+        else:
+            percentage = int(round((1.0 - voice_speed) * 100))
+            rate = f"-{percentage}%"
+            
         try:
             for idx, item in enumerate(items):
                 # Map language to a natural-sounding neural voice
@@ -52,7 +60,7 @@ class AudioService:
                 temp_filepath = os.path.join(self.temp_dir, temp_filename)
                 
                 # Generate audio using edge-tts
-                communicate = edge_tts.Communicate(item.text, voice)
+                communicate = edge_tts.Communicate(item.text, voice, rate=rate)
                 await communicate.save(temp_filepath)
                 temp_files.append(temp_filepath)
                 

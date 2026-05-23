@@ -1,12 +1,12 @@
 # Agent Guidelines & Project Architecture (AGENT.md)
 
-Welcome to the **Pic-Reader** project! This file serves as the system manual and guide for human developers and AI coding agents. It describes the design philosophy, architectural components, execution flows, and implementation instructions for building and extending the project.
+Welcome to the **SnapSpeak** project! This file serves as the system manual and guide for human developers and AI coding agents. It describes the design philosophy, architectural components, execution flows, and implementation instructions for building and extending the project.
 
 ---
 
 ## 1. Project Overview
 
-**Pic-Reader** is a picture-to-voice web application structured as a monorepo:
+**SnapSpeak** is a picture-to-voice web application structured as a monorepo:
 - **Frontend**: A Node.js web application (Next.js) that provides a user-friendly UI to upload pictures or capture images using a camera. It sends the image, user prompts, and "跟读" (read-along) settings to the backend, receives the generated MP3, plays it, and allows downloading it. Settings are persisted in the browser's `localStorage`.
 - **Backend**: A Python application using LangChain, Google Gemini (`gemini-2.0-flash-lite`), and Microsoft Neural TTS (`edge-tts`) to parse the image, extract a structured list of sentences/words and their corresponding languages, convert them to natural voice clips, and stitch them into a single audio file with customizable timing intervals.
 
@@ -15,7 +15,7 @@ Welcome to the **Pic-Reader** project! This file serves as the system manual and
 ## 2. Directory Structure
 
 ```
-pic-reader/
+snapspeak/
 ├── frontend/                 # Next.js Frontend Application
 │   ├── package.json          # Node dependencies (next, react, react-dom, etc.)
 │   ├── next.config.js        # Next.js configuration and proxy rewrite rules

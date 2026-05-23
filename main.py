@@ -12,7 +12,7 @@ load_dotenv()
 from services.langchain_service import langchain_service, ExtractionResponse
 from services.audio_service import audio_service
 
-app = FastAPI(title="Pic-Reader API")
+app = FastAPI(title="SnapSpeak API")
 
 # Configure CORS so frontend can communicate with backend
 app.add_middleware(
@@ -40,6 +40,7 @@ class ProcessImageRequest(BaseModel):
     image: str = Field(description="Base64 encoded string of the image.")
     prompt: str = Field(default="Extract all vocabulary words and phrases from this image", description="Prompt instructing AI what to extract.")
     read_along: bool = Field(default=False, description="If True, adds extra silence gap for reading along.")
+    voice_speed: float = Field(default=1.0, description="Speech rate/speed factor (e.g. 0.5 to 2.0).")
 
 class ProcessImageResponse(BaseModel):
     items: list = Field(description="List of extracted text items with languages.")
@@ -60,7 +61,8 @@ async def process_image(request: ProcessImageRequest):
         # 2. TTS and stitching
         audio_filepath = await audio_service.generate_stitched_audio(
             items=extraction.items,
-            read_along=request.read_along
+            read_along=request.read_along,
+            voice_speed=request.voice_speed
         )
         
         # 3. Formulate retrieval URL
