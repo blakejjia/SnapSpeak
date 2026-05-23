@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pic-Reader - Multilingual Picture to Voice Synthesizer</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/static/globals.css">
+</head>
+<body>
+  <!-- Background Mesh Glow Elements -->
+  <div class="mesh-glow mesh-glow-1"></div>
+  <div class="mesh-glow mesh-glow-2"></div>
+  <div class="mesh-glow mesh-glow-3"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-section">
+        <span class="logo-icon" role="img" aria-label="microphone">🎙️</span>
+        <div>
+          <h1 class="logo-text">Pic-Reader</h1>
+          <p class="subtitle">Multilingual Picture to Voice Synthesizer</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      
+      <!-- Left column: Input parameters & Image Capture -->
+      <section class="glass-panel">
+        <h2 class="panel-title">Source Image & Setup</h2>
+        
+        <!-- Capture Box -->
+        <div class="form-group">
+          <span class="form-label">Input Picture</span>
+          
+          <div class="capture-box" id="capture-box">
+            <!-- Camera Active View -->
+            <div class="preview-container" id="camera-container" style="display: none;">
+              <video id="webcam-video" autoplay playsinline class="webcam-video"></video>
+              <button class="remove-preview-btn" id="close-camera-btn" title="Close Camera">✕</button>
+            </div>
+
+            <!-- Captured / Uploaded Image View -->
+            <div class="preview-container" id="image-container" style="display: none;">
+              <img id="preview-img" alt="Preview" class="preview-img">
+              <button class="remove-preview-btn" id="remove-image-btn" title="Remove Image">✕</button>
+            </div>
+
+            <!-- Default view -->
+            <div id="default-view" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.15rem; width: 100%;">
+              <svg class="capture-icon" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+              </svg>
+              <div>
+                <p style="font-weight: 600">Click to browse or drop an image</p>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px">
+                  Supports PNG, JPG, JPEG
+                </p>
+              </div>
+            </div>
+
+            <!-- Laser scan line overlay when loading -->
+            <div class="scanner-overlay" id="scanner-overlay" style="display: none;">
+              <div class="scanner-line"></div>
+              <span class="spinner"></span>
+              <p style="font-weight: 600; font-size: 0.9rem; color: #fff;">Analyzing Image...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Row for Camera/File -->
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="camera-btn">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" id="camera-icon">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+            </svg>
+            <span id="camera-btn-text">Use Camera</span>
+          </button>
+
+          <button class="btn btn-secondary" id="file-btn">Choose File</button>
+          <input type="file" id="file-input" style="display: none;" accept="image/*" />
+        </div>
+
+        <!-- User OCR Prompt Instructions -->
+        <div class="form-group">
+          <label class="form-label">AI Extraction Request / Prompt</label>
+          <textarea class="input-textarea" id="prompt-textarea" placeholder="e.g. Extract words and translate. Make sure to specify what words you want."></textarea>
+        </div>
+
+        <!-- Settings: Read Along Toggle -->
+        <div class="settings-bar">
+          <div class="toggle-info">
+            <span class="toggle-title">Enable Follow-Along Mode (跟读)</span>
+            <span class="toggle-desc">Adds a pause equal to the audio duration + 1s between items for repeating.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="read-along-checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Hidden Canvas for capturing camera frame -->
+        <canvas id="capture-canvas" style="display: none;"></canvas>
+
+        <!-- Submit Trigger -->
+        <button class="btn btn-primary" id="process-btn" style="width: 100%; marginTop: 0.5rem;" disabled>
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+          </svg>
+          <span id="process-btn-text">Process & Generate Voice</span>
+        </button>
+
+        <!-- General Errors banner -->
+        <div id="error-banner" style="display: none; color: var(--error); font-size: 0.9rem; background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.22); padding: 0.75rem 1rem; borderRadius: 8px;"></div>
+      </section>
+
+      <!-- Right column: Results & Player -->
+      <section class="glass-panel" id="results-panel">
+        <h2 class="panel-title">Extracted Output</h2>
+        
+        <!-- Loading State Box -->
+        <div class="loading-box" id="loading-box" style="display: none;">
+          <div class="spinner"></div>
+          <p style="color: var(--text-secondary);">OCR-ing, parsing languages, and generating TTS...</p>
+        </div>
+
+        <!-- Empty State View -->
+        <div class="empty-state" id="empty-state">
+          <span class="empty-icon">📝</span>
+          <p style="font-weight: 600; color: #fff;">No audio generated yet</p>
+          <p style="font-size: 0.8rem; width: 80%;">
+            Provide an image and request extraction to synthesize your custom practice file.
+          </p>
+        </div>
+
+        <!-- Output Content Wrapper (Contains player and cards) -->
+        <div id="output-content" style="display: none; flex-direction: column; gap: 1.75rem;">
+          <!-- Audio player card -->
+          <div class="audio-deck" id="audio-deck">
+            <div class="audio-deck-header">
+              <div class="audio-deck-title">
+                <span class="audio-deck-pulse paused" id="audio-pulse"></span>
+                <span>Stitched Voice Guide</span>
+              </div>
+              <span class="audio-deck-badge" id="audio-badge">标准模式</span>
+            </div>
+            
+            <div class="audio-controls-row">
+              <button class="audio-play-btn" id="audio-play-btn" aria-label="Play">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24" id="play-icon" style="margin-left: 2px;">
+                  <path fill-rule="evenodd" d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z" clip-rule="evenodd" />
+                </svg>
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24" id="pause-icon" style="display: none;">
+                  <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 0 1 .75-.75H9a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H7.5a.75.75 0 0 1-.75-.75V5.25Zm7.5 0A.75.75 0 0 1 15 4.5h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H15a.75.75 0 0 1-.75-.75V5.25Z" clip-rule="evenodd" />
+                </svg>
+              </button>
+              
+              <a href="#" download class="audio-download-btn" id="audio-download-btn" title="Download Audio" aria-label="Download Audio">
+                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              </a>
+              
+              <div class="audio-timeline-container">
+                <div class="audio-progress-bar-bg" id="audio-progress-bar">
+                  <div class="audio-progress-bar-fill" id="audio-progress-bar-fill">
+                    <div class="audio-progress-handle"></div>
+                  </div>
+                </div>
+                
+                <div class="audio-timeline-times">
+                  <span id="audio-time-current">00:00</span>
+                  <span id="audio-time-total">00:00</span>
+                </div>
+              </div>
+            </div>
+            
+            <audio id="audio-element" style="display: none;"></audio>
+          </div>
+
+          <!-- Cards Grid -->
+          <div class="form-group">
+            <span class="form-label" id="elements-count-label">Extracted Elements (0)</span>
+            <div class="element-grid" id="element-grid">
+              <!-- Element Cards will be dynamically inserted here -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- JavaScript logic -->
+  <script>
+    // LocalStorage keys
+    const PROMPT_KEY = 'pic_reader_prompt';
+    const READ_ALONG_KEY = 'pic_reader_read_along';
+
+    // Speech synthesis client helper
+    const speakText = (text, lang) => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        
+        const langCodeMap = {
+          'en': 'en-US',
+          'zh': 'zh-CN',
+          'ja': 'ja-JP',
+          'ko': 'ko-KR',
+          'fr': 'fr-FR',
+          'es': 'es-ES',
+          'de': 'de-DE',
+          'ru': 'ru-RU',
+          'it': 'it-IT'
+        };
+        
+        const targetLang = langCodeMap[lang.toLowerCase()] || lang;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = targetLang;
+        
+        const voices = window.speechSynthesis.getVoices();
+        const matchingVoice = voices.find(voice => 
+          voice.lang.toLowerCase().includes(targetLang.toLowerCase()) || 
+          voice.lang.toLowerCase().startsWith(lang.toLowerCase())
+        );
+        if (matchingVoice) {
+          utterance.voice = matchingVoice;
+        }
+        
+        window.speechSynthesis.speak(utterance);
+      }
+    };
+
+    // Ensure voices are loaded (Chrome sometimes loads them asynchronously)
+    if (window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+    }
+
+    // DOM Elements
+    const captureBox = document.getElementById('capture-box');
+    const cameraContainer = document.getElementById('camera-container');
+    const imageContainer = document.getElementById('image-container');
+    const defaultView = document.getElementById('default-view');
+    const scannerOverlay = document.getElementById('scanner-overlay');
+
+    const webcamVideo = document.getElementById('webcam-video');
+    const previewImg = document.getElementById('preview-img');
+    const closeCameraBtn = document.getElementById('close-camera-btn');
+    const removeImageBtn = document.getElementById('remove-image-btn');
+
+    const cameraBtn = document.getElementById('camera-btn');
+    const cameraBtnText = document.getElementById('camera-btn-text');
+    const fileBtn = document.getElementById('file-btn');
+    const fileInput = document.getElementById('file-input');
+
+    const promptTextarea = document.getElementById('prompt-textarea');
+    const readAlongCheckbox = document.getElementById('read-along-checkbox');
+    const processBtn = document.getElementById('process-btn');
+    const errorBanner = document.getElementById('error-banner');
+
+    const resultsPanel = document.getElementById('results-panel');
+    const loadingBox = document.getElementById('loading-box');
+    const emptyState = document.getElementById('empty-state');
+    const outputContent = document.getElementById('output-content');
+
+    // Audio elements
+    const audioElement = document.getElementById('audio-element');
+    const audioPlayBtn = document.getElementById('audio-play-btn');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const audioDownloadBtn = document.getElementById('audio-download-btn');
+    const audioProgressBar = document.getElementById('audio-progress-bar');
+    const audioProgressBarFill = document.getElementById('audio-progress-bar-fill');
+    const audioTimeCurrent = document.getElementById('audio-time-current');
+    const audioTimeTotal = document.getElementById('audio-time-total');
+    const audioPulse = document.getElementById('audio-pulse');
+    const audioBadge = document.getElementById('audio-badge');
+
+    const elementGrid = document.getElementById('element-grid');
+    const elementsCountLabel = document.getElementById('elements-count-label');
+    const captureCanvas = document.getElementById('capture-canvas');
+
+    // App state
+    let imageBase64 = null;
+    let cameraStream = null;
+    let cameraActive = false;
+    let isProcessing = false;
+
+    // Initialize form settings from localStorage
+    const initSettings = () => {
+      const savedPrompt = localStorage.getItem(PROMPT_KEY);
+      if (savedPrompt !== null) {
+        promptTextarea.value = savedPrompt;
+      } else {
+        promptTextarea.value = 'Extract all vocabulary words and sentences from this image.';
+      }
+      
+      const savedReadAlong = localStorage.getItem(READ_ALONG_KEY);
+      if (savedReadAlong !== null) {
+        readAlongCheckbox.checked = (savedReadAlong === 'true');
+      }
+    };
+    initSettings();
+
+    // Save settings to localStorage on change
+    promptTextarea.addEventListener('input', () => {
+      localStorage.setItem(PROMPT_KEY, promptTextarea.value);
+    });
+    readAlongCheckbox.addEventListener('change', () => {
+      localStorage.setItem(READ_ALONG_KEY, readAlongCheckbox.checked);
+    });
+
+    // Update process button state
+    const updateProcessBtnState = () => {
+      processBtn.disabled = isProcessing || !imageBase64;
+    };
+
+    // Error rendering
+    const showError = (msg) => {
+      if (msg) {
+        errorBanner.textContent = msg;
+        errorBanner.style.display = 'block';
+      } else {
+        errorBanner.style.display = 'none';
+      }
+    };
+
+    // Camera handlers
+    const startCamera = async () => {
+      showError(null);
+      clearImage();
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+        cameraStream = stream;
+        webcamVideo.srcObject = stream;
+        cameraContainer.style.display = 'block';
+        defaultView.style.display = 'none';
+        imageContainer.style.display = 'none';
+        cameraActive = true;
+        cameraBtnText.textContent = 'Capture Snap';
+        cameraBtn.classList.remove('btn-secondary');
+        cameraBtn.classList.add('btn-primary');
+      } catch (err) {
+        console.error("Camera access failed:", err);
+        showError("Unable to access camera. Please check permissions or upload a picture instead.");
+      }
+    };
+
+    const stopCamera = () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+      webcamVideo.srcObject = null;
+      cameraContainer.style.display = 'none';
+      cameraActive = false;
+      cameraBtnText.textContent = 'Use Camera';
+      cameraBtn.classList.remove('btn-primary');
+      cameraBtn.classList.add('btn-secondary');
+    };
+
+    const capturePhoto = () => {
+      if (webcamVideo && captureCanvas) {
+        const ctx = captureCanvas.getContext('2d');
+        captureCanvas.width = webcamVideo.videoWidth;
+        captureCanvas.height = webcamVideo.videoHeight;
+        
+        // Mirror horizontally to match preview
+        ctx.translate(captureCanvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(webcamVideo, 0, 0, captureCanvas.width, captureCanvas.height);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        imageBase64 = captureCanvas.toDataURL('image/jpeg');
+        previewImg.src = imageBase64;
+        imageContainer.style.display = 'block';
+        defaultView.style.display = 'none';
+        stopCamera();
+        updateProcessBtnState();
+      }
+    };
+
+    const clearImage = () => {
+      imageBase64 = null;
+      previewImg.src = '';
+      imageContainer.style.display = 'none';
+      defaultView.style.display = 'flex';
+      stopCamera();
+      fileInput.value = '';
+      updateProcessBtnState();
+    };
+
+    // Events for camera / capture button
+    cameraBtn.addEventListener('click', () => {
+      if (isProcessing) return;
+      if (!cameraActive) {
+        startCamera();
+      } else {
+        capturePhoto();
+      }
+    });
+
+    closeCameraBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      stopCamera();
+      defaultView.style.display = 'flex';
+    });
+
+    removeImageBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isProcessing) return;
+      clearImage();
+    });
+
+    // File upload handlers
+    fileBtn.addEventListener('click', () => {
+      if (isProcessing) return;
+      fileInput.click();
+    });
+
+    captureBox.addEventListener('click', () => {
+      if (!cameraActive && !imageBase64 && !isProcessing) {
+        fileInput.click();
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        showError(null);
+        stopCamera();
+        const reader = new FileReader();
+        reader.onload = () => {
+          imageBase64 = reader.result;
+          previewImg.src = imageBase64;
+          imageContainer.style.display = 'block';
+          defaultView.style.display = 'none';
+          updateProcessBtnState();
+        };
+        reader.onerror = () => {
+          showError("Error reading file.");
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Drag and drop for capture-box
+    captureBox.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      captureBox.style.borderColor = 'var(--primary)';
+    });
+
+    captureBox.addEventListener('dragleave', () => {
+      captureBox.style.borderColor = '';
+    });
+
+    captureBox.addEventListener('drop', (e) => {
+      e.preventDefault();
+      captureBox.style.borderColor = '';
+      if (isProcessing) return;
+      
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        showError(null);
+        stopCamera();
+        const reader = new FileReader();
+        reader.onload = () => {
+          imageBase64 = reader.result;
+          previewImg.src = imageBase64;
+          imageContainer.style.display = 'block';
+          defaultView.style.display = 'none';
+          updateProcessBtnState();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Custom audio player functions
+    let isAudioPlaying = false;
+
+    const formatTime = (secs) => {
+      if (isNaN(secs) || !isFinite(secs)) return "00:00";
+      const m = Math.floor(secs / 60).toString().padStart(2, '0');
+      const s = Math.floor(secs % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    };
+
+    const updateAudioPlayerUI = () => {
+      if (isAudioPlaying) {
+        playIcon.style.display = 'none';
+        pauseIcon.style.display = 'block';
+        audioPulse.classList.remove('paused');
+      } else {
+        playIcon.style.display = 'block';
+        pauseIcon.style.display = 'none';
+        audioPulse.classList.add('paused');
+      }
+    };
+
+    audioPlayBtn.addEventListener('click', () => {
+      if (!audioElement.src) return;
+      if (isAudioPlaying) {
+        audioElement.pause();
+        isAudioPlaying = false;
+      } else {
+        audioElement.play().catch(err => console.error("Audio play error:", err));
+        isAudioPlaying = true;
+      }
+      updateAudioPlayerUI();
+    });
+
+    audioElement.addEventListener('timeupdate', () => {
+      const current = audioElement.currentTime;
+      const duration = audioElement.duration || 0;
+      audioTimeCurrent.textContent = formatTime(current);
+      
+      const percentage = duration ? (current / duration) * 100 : 0;
+      audioProgressBarFill.style.width = `${percentage}%`;
+    });
+
+    audioElement.addEventListener('loadedmetadata', () => {
+      audioTimeTotal.textContent = formatTime(audioElement.duration);
+    });
+
+    audioElement.addEventListener('ended', () => {
+      isAudioPlaying = false;
+      updateAudioPlayerUI();
+      audioTimeCurrent.textContent = "00:00";
+      audioProgressBarFill.style.width = "0%";
+    });
+
+    audioProgressBar.addEventListener('click', (e) => {
+      if (!audioElement.duration) return;
+      const rect = audioProgressBar.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const width = rect.width;
+      const percentage = clickX / width;
+      audioElement.currentTime = percentage * audioElement.duration;
+    });
+
+    // Submit / Processing logic
+    const renderItems = (items) => {
+      elementGrid.innerHTML = '';
+      elementsCountLabel.textContent = `Extracted Elements (${items.length})`;
+      
+      items.forEach((item, index) => {
+        const langClass = `lang-${item.language.toLowerCase()}`;
+        const isLong = item.text.length > 20;
+        const cardNumber = (index + 1).toString().padStart(2, '0');
+        
+        const cardEl = document.createElement('div');
+        cardEl.className = `element-card ${langClass}`;
+        cardEl.style.animationDelay = `${index * 60}ms`;
+        
+        cardEl.innerHTML = `
+          <div class="card-header">
+            <span class="card-number">${cardNumber}</span>
+            <span class="card-badge">${item.language}</span>
+          </div>
+          <div class="card-body">
+            <p class="card-text ${isLong ? 'long-text' : ''}">${escapeHtml(item.text)}</p>
+          </div>
+          <div class="card-actions">
+            <button class="card-action-btn speak-btn" title="Read Aloud" data-text="${escapeHtml(item.text)}" data-lang="${item.language}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            </button>
+            <button class="card-action-btn copy-btn" title="Copy Text" data-text="${escapeHtml(item.text)}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        `;
+        
+        // Add button listeners
+        cardEl.querySelector('.speak-btn').addEventListener('click', function() {
+          speakText(this.getAttribute('data-text'), this.getAttribute('data-lang'));
+        });
+        
+        cardEl.querySelector('.copy-btn').addEventListener('click', function() {
+          navigator.clipboard.writeText(this.getAttribute('data-text'));
+        });
+        
+        elementGrid.appendChild(cardEl);
+      });
+    };
+
+    const escapeHtml = (text) => {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    };
+
+    processBtn.addEventListener('click', async () => {
+      if (!imageBase64 || isProcessing) return;
+      
+      isProcessing = true;
+      showError(null);
+      updateProcessBtnState();
+      
+      scannerOverlay.style.display = 'flex';
+      loadingBox.style.display = 'flex';
+      emptyState.style.display = 'none';
+      outputContent.style.display = 'none';
+      
+      // Pause any active audio
+      audioElement.pause();
+      isAudioPlaying = false;
+      updateAudioPlayerUI();
+      
+      const readAlong = readAlongCheckbox.checked;
+      const prompt = promptTextarea.value;
+      
+      try {
+        const response = await fetch('/api/process-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            image: imageBase64,
+            prompt: prompt,
+            read_along: readAlong
+          })
+        });
+        
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || "Server responded with an error.");
+        }
+        
+        const data = await response.json();
+        
+        // Update player
+        audioElement.src = data.audio_url;
+        audioDownloadBtn.href = data.audio_url;
+        audioBadge.textContent = readAlong ? "跟读模式 (+ gap)" : "标准模式";
+        
+        // Reset player times
+        audioTimeCurrent.textContent = "00:00";
+        audioTimeTotal.textContent = "00:00";
+        audioProgressBarFill.style.width = "0%";
+        
+        // Render cards
+        renderItems(data.items);
+        
+        loadingBox.style.display = 'none';
+        outputContent.style.display = 'flex';
+      } catch (err) {
+        console.error("Processing failed:", err);
+        showError(err.message || "Failed to process the image and generate audio.");
+        loadingBox.style.display = 'none';
+        emptyState.style.display = 'flex';
+      } finally {
+        isProcessing = false;
+        scannerOverlay.style.display = 'none';
+        updateProcessBtnState();
+      }
+    });
+  </script>
+</body>
+</html>

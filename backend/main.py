@@ -1,7 +1,8 @@
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
@@ -21,6 +22,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve static files and index.html
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def read_index():
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    raise HTTPException(status_code=404, detail="Index file not found")
+
 
 class ProcessImageRequest(BaseModel):
     image: str = Field(description="Base64 encoded string of the image.")
@@ -85,4 +99,4 @@ if __name__ == "__main__":
     # Use environment PORT or default to 8000
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
-    uvicorn.run("main:app", host=host, port=port, reload=True)
+    uvicorn.run("backend.main:app", host=host, port=port, reload=True)
