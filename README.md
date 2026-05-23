@@ -26,6 +26,10 @@
 
 Featuring a beautiful **glassmorphic dark-mode interface**, SnapSpeak functions as a complete monorepo served entirely by FastAPI with **zero Node.js/npm dependencies**!
 
+> [!TIP]
+> **Who is SnapSpeak for?**
+> SnapSpeak is designed specifically for **language learners** who want to build and study their **own custom word banks**. If you have handwritten vocabulary sheets, textbook screenshots, or custom list exercises and need a **professional audio recording (专业录音) to read along with (跟读)** to perfect your pronunciation, SnapSpeak creates structured custom practice guides for you instantly.
+
 ---
 
 ## ✨ Core Features
@@ -106,7 +110,7 @@ Create a `.env` file in the root folder (or copy from `.env.example`) and add yo
 
 ```env
 GEMINI_API_KEY="your_api_key_here"
-GEMINI_MODEL="gemini-2.0-flash-lite-preview-02-05"
+GEMINI_MODEL="gemini-flash-lite-latest"
 PORT=8000
 HOST=0.0.0.0
 ```
