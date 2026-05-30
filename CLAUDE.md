@@ -64,7 +64,7 @@ Create a `.env` file (gitignored) with:
 
 ```
 GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-2.0-flash-lite-preview-02-05   # default if unset
+GEMINI_MODEL=gemini-flash-lite-latest   # default if unset
 EUDIC_API_TOKEN=your_frdic_token_here               # optional, can be entered in-app
 PORT=8000
 HOST=0.0.0.0
