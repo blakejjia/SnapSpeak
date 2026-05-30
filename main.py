@@ -2,7 +2,7 @@ import os
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -71,11 +71,9 @@ class GenerateAudioRequest(BaseModel):
     read_along: bool = Field(default=False, description="If True, adds extra silence gap for reading along.")
     voice_speed: float = Field(default=1.0, description="Speech rate/speed factor (e.g. 0.5 to 2.0).")
 
-class GenerateAudioResponse(BaseModel):
-    audio_url: str = Field(description="Relative API URL to retrieve the stitched audio file.")
-
-@app.post("/api/generate-audio", response_model=GenerateAudioResponse)
+@app.post("/api/generate-audio")
 async def generate_audio(request: GenerateAudioRequest):
+    """Generate stitched MP3 audio and return it directly as bytes. No files stored on disk."""
     try:
         from services.langchain_service import ExtractedItem
 
@@ -85,37 +83,18 @@ async def generate_audio(request: GenerateAudioRequest):
         if not items:
             raise HTTPException(status_code=422, detail="No text items provided for audio generation.")
 
-        audio_filepath = await audio_service.generate_stitched_audio(
+        audio_bytes = await audio_service.generate_stitched_audio(
             items=items,
             read_along=request.read_along,
             voice_speed=request.voice_speed
         )
 
-        filename = os.path.basename(audio_filepath)
-        audio_url = f"/api/audio/{filename}"
-
-        return GenerateAudioResponse(audio_url=audio_url)
+        return Response(content=audio_bytes, media_type="audio/mpeg")
 
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate audio: {str(e)}")
-
-@app.get("/api/audio/{filename}")
-def get_audio(filename: str):
-    temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp")
-    filepath = os.path.join(temp_dir, filename)
-    
-    # Path traversal security check
-    real_path = os.path.realpath(filepath)
-    real_temp_dir = os.path.realpath(temp_dir)
-    if not real_path.startswith(real_temp_dir):
-        raise HTTPException(status_code=403, detail="Access denied")
-        
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Audio file not found")
-        
-    return FileResponse(filepath, media_type="audio/mpeg", filename=filename)
 
 # ── FRDic (法语助手/欧路词典) OpenAPI proxy endpoints ──
 

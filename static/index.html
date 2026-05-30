@@ -859,6 +859,7 @@
         voiceEmptyState.style.display = 'none';
         audioElement.src = state.extractionResult.audio_url;
         audioDownloadBtn.href = state.extractionResult.audio_url;
+        audioDownloadBtn.download = 'linguasnap_audio.mp3';
         audioBadge.textContent = dashReadAlongCheckbox.checked ? '跟读模式 (+ gap)' : '标准模式';
         audioTimeCurrent.textContent = '00:00';
         audioTimeTotal.textContent = '00:00';
@@ -906,10 +907,14 @@
           throw new Error(errData.detail || 'Server responded with an error.');
         }
 
-        const data = await response.json();
+        // Revoke old blob URL to avoid memory leaks
+        if (state.extractionResult.audio_url && state.extractionResult.audio_url.startsWith('blob:')) {
+          URL.revokeObjectURL(state.extractionResult.audio_url);
+        }
 
-        // Store the audio URL
-        state.extractionResult.audio_url = data.audio_url;
+        // Create a blob URL from the audio bytes response
+        const blob = await response.blob();
+        state.extractionResult.audio_url = URL.createObjectURL(blob);
 
         // Update the UI
         updateVoicePanelUI();
@@ -1010,6 +1015,11 @@
 
         const data = await response.json();
 
+        // Revoke old blob URL before replacing extraction result
+        if (state.extractionResult && state.extractionResult.audio_url && state.extractionResult.audio_url.startsWith('blob:')) {
+          URL.revokeObjectURL(state.extractionResult.audio_url);
+        }
+
         // Store extraction result globally (no audio yet — generated on demand)
         state.extractionResult = {
           items: data.items,
@@ -1047,6 +1057,10 @@
     // NEW PHOTO BUTTON — Return to welcome view
     // ═══════════════════════════════════════════════
     newPhotoBtn.addEventListener('click', () => {
+      // Revoke old blob URL before discarding extraction result
+      if (state.extractionResult && state.extractionResult.audio_url && state.extractionResult.audio_url.startsWith('blob:')) {
+        URL.revokeObjectURL(state.extractionResult.audio_url);
+      }
       clearImage();
       showWelcomeView();
     });

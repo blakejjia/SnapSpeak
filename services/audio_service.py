@@ -1,5 +1,6 @@
+import io
 import os
-import uuid
+import tempfile
 from typing import List
 import edge_tts
 from pydub import AudioSegment
@@ -19,11 +20,6 @@ VOICE_MAPPING = {
 }
 
 class AudioService:
-    def __init__(self):
-        # Establish directory for temporary files
-        self.temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "temp")
-        os.makedirs(self.temp_dir, exist_ok=True)
-        
     def _get_voice(self, lang: str) -> str:
         """
         Maps a language code to a high-quality edge-tts neural voice.
@@ -31,18 +27,19 @@ class AudioService:
         # Normalize: e.g., 'en-US' -> 'en', 'ZH' -> 'zh'
         lang_normalized = lang.lower().split('-')[0].split('_')[0]
         return VOICE_MAPPING.get(lang_normalized, "en-US-EmmaNeural")
-        
-    async def generate_stitched_audio(self, items: List[ExtractedItem], read_along: bool, voice_speed: float = 1.0) -> str:
+
+    async def generate_stitched_audio(self, items: List[ExtractedItem], read_along: bool, voice_speed: float = 1.0) -> bytes:
         """
         Synthesizes audio for each item, calculates gaps based on read_along mode,
-        stitches the items together, and returns the path to the resulting MP3 file.
+        stitches the items together, and returns the resulting MP3 as bytes.
+        No files are persisted — everything is built in memory.
         """
         if not items:
             raise ValueError("No text items provided to synthesize.")
-            
+
         combined_audio = AudioSegment.empty()
         temp_files = []
-        
+
         # Convert float speed to edge-tts rate format, e.g. 1.0 -> "+0%", 1.25 -> "+25%", 0.85 -> "-15%"
         if voice_speed >= 1.0:
             percentage = int(round((voice_speed - 1.0) * 100))
@@ -50,23 +47,25 @@ class AudioService:
         else:
             percentage = int(round((1.0 - voice_speed) * 100))
             rate = f"-{percentage}%"
-            
+
         try:
             for idx, item in enumerate(items):
                 # Map language to a natural-sounding neural voice
                 voice = self._get_voice(item.language)
-                
-                temp_filename = f"temp_{uuid.uuid4().hex}_{idx}.mp3"
-                temp_filepath = os.path.join(self.temp_dir, temp_filename)
-                
+
+                # Use a system temp file for the individual clip (cleaned up in finally)
+                temp_file = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False)
+                temp_filepath = temp_file.name
+                temp_file.close()  # Close so edge-tts can write to it
+                temp_files.append(temp_filepath)
+
                 # Generate audio using edge-tts
                 communicate = edge_tts.Communicate(item.text, voice, rate=rate)
                 await communicate.save(temp_filepath)
-                temp_files.append(temp_filepath)
-                
+
                 # Load the clip with pydub
                 clip = AudioSegment.from_file(temp_filepath, format="mp3")
-                
+
                 # Calculate silence duration in milliseconds
                 if read_along:
                     # Silence = clip duration + 1 second (1000ms)
@@ -74,20 +73,18 @@ class AudioService:
                 else:
                     # Silence = 1 second (1000ms)
                     silence_duration_ms = 1000
-                    
+
                 # Create silence segment
                 silence_segment = AudioSegment.silent(duration=silence_duration_ms)
-                
+
                 # Append clip and silence
                 combined_audio += clip + silence_segment
-                
-            # Export the combined audio
-            output_filename = f"combined_{uuid.uuid4().hex}.mp3"
-            output_filepath = os.path.join(self.temp_dir, output_filename)
-            combined_audio.export(output_filepath, format="mp3")
-            
-            return output_filepath
-            
+
+            # Export the combined audio to an in-memory buffer
+            buffer = io.BytesIO()
+            combined_audio.export(buffer, format="mp3")
+            return buffer.getvalue()
+
         finally:
             # Clean up individual temporary files
             for filepath in temp_files:
