@@ -105,38 +105,15 @@
             <textarea class="input-textarea" id="prompt-textarea" placeholder="e.g. Extract words and translate. Make sure to specify what words you want."></textarea>
           </div>
 
-          <!-- Settings: Read Along Toggle -->
-          <div class="settings-bar">
-            <div class="toggle-info">
-              <span class="toggle-title">Enable Follow-Along Mode (跟读)</span>
-              <span class="toggle-desc">Adds a pause equal to the audio duration + 1s between items for repeating.</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="read-along-checkbox">
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- Settings: Voice Speed -->
-          <div class="settings-bar" style="margin-top: 1rem;">
-            <div class="toggle-info" style="flex-grow: 1; margin-right: 1.5rem;">
-              <span class="toggle-title">Voice Speed (语速): <span id="voice-speed-val">1.0x</span></span>
-              <span class="toggle-desc">Adjust the speed of both generated stitched voice and preview voice.</span>
-            </div>
-            <div class="slider-container" style="display: flex; align-items: center; width: 140px;">
-              <input type="range" id="voice-speed-slider" min="0.5" max="2.0" step="0.1" value="1.0" class="speed-slider">
-            </div>
-          </div>
-
           <!-- Hidden Canvas for capturing camera frame -->
           <canvas id="capture-canvas" style="display: none;"></canvas>
 
           <!-- Submit Trigger -->
           <button class="btn btn-primary" id="process-btn" style="width: 100%; marginTop: 0.5rem;" disabled>
             <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 9V3.75a.75.75 0 00-.75-.75h-7.5a.75.75 0 00-.75.75V9m-1.5 0H3.375a.75.75 0 00-.75.75v7.5a.75.75 0 00.75.75h17.25a.75.75 0 00.75-.75v-7.5a.75.75 0 00-.75-.75H18m-9 0h6m-3 3.75v10.5M8.625 13.5l3.375 3 3.375-3" />
             </svg>
-            <span id="process-btn-text">Process & Generate Voice</span>
+            <span id="process-btn-text">Analyze Image</span>
           </button>
 
           <!-- General Errors banner -->
@@ -198,8 +175,8 @@
 
           <!-- ═══ Voice Recording Panel ═══ -->
           <div id="panel-voice" class="panel-content active">
-            <!-- Audio Player Deck -->
-            <div class="audio-deck" id="audio-deck">
+            <!-- Audio Player Deck (shown after voice generation) -->
+            <div class="audio-deck" id="audio-deck" style="display: none;">
               <div class="audio-deck-header">
                 <div class="audio-deck-title">
                   <span class="audio-deck-pulse paused" id="audio-pulse"></span>
@@ -242,7 +219,7 @@
             </div>
 
             <!-- Settings: Read Along Toggle -->
-            <div class="settings-bar" style="margin-top: 1.25rem;">
+            <div class="settings-bar" id="voice-settings-bar-readalong" style="margin-top: 1.25rem;">
               <div class="toggle-info">
                 <span class="toggle-title">Enable Follow-Along Mode (跟读)</span>
                 <span class="toggle-desc">Adds a pause equal to the audio duration + 1s between items for repeating.</span>
@@ -254,22 +231,30 @@
             </div>
 
             <!-- Settings: Voice Speed -->
-            <div class="settings-bar" style="margin-top: 1rem;">
+            <div class="settings-bar" id="voice-settings-bar-speed" style="margin-top: 1rem;">
               <div class="toggle-info" style="flex-grow: 1; margin-right: 1.5rem;">
-                <span class="toggle-title">Preview Voice Speed: <span id="dashboard-voice-speed-val">1.0x</span></span>
-                <span class="toggle-desc">Adjust the reading speed for word card preview playback.</span>
+                <span class="toggle-title">Voice Speed (语速): <span id="dashboard-voice-speed-val">1.0x</span></span>
+                <span class="toggle-desc">Adjust the speed of both generated stitched voice and preview voice.</span>
               </div>
               <div class="slider-container" style="display: flex; align-items: center; width: 140px;">
                 <input type="range" id="dashboard-voice-speed-slider" min="0.5" max="2.0" step="0.1" value="1.0" class="speed-slider">
               </div>
             </div>
 
-            <!-- No audio empty state -->
-            <div class="empty-state" id="voice-empty-state" style="display: none;">
+            <!-- Generate Voice Button -->
+            <button class="btn btn-primary" id="generate-voice-btn" style="width: 100%; margin-top: 0.25rem;">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 0.5rem;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+              </svg>
+              <span id="generate-voice-btn-text">Generate Voice</span>
+            </button>
+
+            <!-- No extraction empty state -->
+            <div class="empty-state" id="voice-empty-state">
               <span class="empty-icon">🎙️</span>
-              <p style="font-weight: 600; color: #fff;">No audio generated yet</p>
+              <p style="font-weight: 600; color: #fff;">No words extracted yet</p>
               <p style="font-size: 0.8rem; width: 80%;">
-                Go back and process an image first.
+                Process an image first to extract words, then generate your voice guide here.
               </p>
             </div>
           </div>
@@ -494,9 +479,6 @@
     const fileBtn = document.getElementById('file-btn');
     const fileInput = document.getElementById('file-input');
     const promptTextarea = document.getElementById('prompt-textarea');
-    const readAlongCheckbox = document.getElementById('read-along-checkbox');
-    const voiceSpeedSlider = document.getElementById('voice-speed-slider');
-    const voiceSpeedVal = document.getElementById('voice-speed-val');
     const processBtn = document.getElementById('process-btn');
     const processBtnText = document.getElementById('process-btn-text');
     const errorBanner = document.getElementById('error-banner');
@@ -511,6 +493,7 @@
     const dashboardLoading = document.getElementById('dashboard-loading');
 
     // Audio
+    const audioDeck = document.getElementById('audio-deck');
     const audioElement = document.getElementById('audio-element');
     const audioPlayBtn = document.getElementById('audio-play-btn');
     const playIcon = document.getElementById('play-icon');
@@ -522,6 +505,9 @@
     const audioTimeTotal = document.getElementById('audio-time-total');
     const audioPulse = document.getElementById('audio-pulse');
     const audioBadge = document.getElementById('audio-badge');
+    const generateVoiceBtn = document.getElementById('generate-voice-btn');
+    const generateVoiceBtnText = document.getElementById('generate-voice-btn-text');
+    const voiceEmptyState = document.getElementById('voice-empty-state');
 
     // Dashboard settings
     const dashReadAlongCheckbox = document.getElementById('dashboard-read-along-checkbox');
@@ -561,13 +547,10 @@
 
       const savedReadAlong = localStorage.getItem(READ_ALONG_KEY);
       const raVal = savedReadAlong === 'true';
-      readAlongCheckbox.checked = raVal;
       dashReadAlongCheckbox.checked = raVal;
 
       const savedVoiceSpeed = localStorage.getItem(VOICE_SPEED_KEY);
       const vsVal = savedVoiceSpeed !== null ? savedVoiceSpeed : '1.0';
-      voiceSpeedSlider.value = vsVal;
-      voiceSpeedVal.textContent = `${parseFloat(vsVal).toFixed(1)}x`;
       dashVoiceSpeedSlider.value = vsVal;
       dashVoiceSpeedVal.textContent = `${parseFloat(vsVal).toFixed(1)}x`;
     };
@@ -577,22 +560,17 @@
     promptTextarea.addEventListener('input', () => localStorage.setItem(PROMPT_KEY, promptTextarea.value));
 
     const syncReadAlong = (checked) => {
-      readAlongCheckbox.checked = checked;
       dashReadAlongCheckbox.checked = checked;
       localStorage.setItem(READ_ALONG_KEY, checked);
     };
-    readAlongCheckbox.addEventListener('change', () => syncReadAlong(readAlongCheckbox.checked));
     dashReadAlongCheckbox.addEventListener('change', () => syncReadAlong(dashReadAlongCheckbox.checked));
 
     const syncVoiceSpeed = (val) => {
       const display = `${parseFloat(val).toFixed(1)}x`;
-      voiceSpeedSlider.value = val;
-      voiceSpeedVal.textContent = display;
       dashVoiceSpeedSlider.value = val;
       dashVoiceSpeedVal.textContent = display;
       localStorage.setItem(VOICE_SPEED_KEY, val);
     };
-    voiceSpeedSlider.addEventListener('input', () => syncVoiceSpeed(voiceSpeedSlider.value));
     dashVoiceSpeedSlider.addEventListener('input', () => syncVoiceSpeed(dashVoiceSpeedSlider.value));
 
     // ═══════════════════════════════════════════════
@@ -638,6 +616,7 @@
       dashboardView.style.display = 'block';
       headerActions.style.display = 'flex';
       renderWordPanel();
+      updateVoicePanelUI();
       switchPanel('voice');
     };
 
@@ -868,6 +847,83 @@
     });
 
     // ═══════════════════════════════════════════════
+    // VOICE PANEL UI — show/hide elements based on state
+    // ═══════════════════════════════════════════════
+    const updateVoicePanelUI = () => {
+      const hasAudio = state.extractionResult && state.extractionResult.audio_url;
+      const hasItems = state.extractionResult && state.extractionResult.items && state.extractionResult.items.length > 0;
+
+      if (hasAudio) {
+        audioDeck.style.display = '';
+        generateVoiceBtnText.textContent = 'Regenerate Voice';
+        voiceEmptyState.style.display = 'none';
+        audioElement.src = state.extractionResult.audio_url;
+        audioDownloadBtn.href = state.extractionResult.audio_url;
+        audioBadge.textContent = dashReadAlongCheckbox.checked ? '跟读模式 (+ gap)' : '标准模式';
+        audioTimeCurrent.textContent = '00:00';
+        audioTimeTotal.textContent = '00:00';
+        audioProgressBarFill.style.width = '0%';
+        isAudioPlaying = false;
+        updateAudioPlayerUI();
+      } else {
+        audioDeck.style.display = 'none';
+        generateVoiceBtnText.textContent = 'Generate Voice';
+        voiceEmptyState.style.display = hasItems ? 'none' : 'flex';
+      }
+
+      generateVoiceBtn.style.display = hasItems ? '' : 'none';
+    };
+
+    // ═══════════════════════════════════════════════
+    // GENERATE VOICE — on-demand voice synthesis
+    // ═══════════════════════════════════════════════
+    let isGeneratingVoice = false;
+
+    generateVoiceBtn.addEventListener('click', async () => {
+      if (isGeneratingVoice) return;
+      if (!state.extractionResult || !state.extractionResult.items || state.extractionResult.items.length === 0) return;
+
+      isGeneratingVoice = true;
+      generateVoiceBtn.disabled = true;
+      generateVoiceBtnText.textContent = 'Generating...';
+
+      const readAlong = dashReadAlongCheckbox.checked;
+      const voiceSpeed = parseFloat(dashVoiceSpeedSlider.value) || 1.0;
+
+      try {
+        const response = await fetch('/api/generate-audio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: state.extractionResult.items,
+            read_along: readAlong,
+            voice_speed: voiceSpeed
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || 'Server responded with an error.');
+        }
+
+        const data = await response.json();
+
+        // Store the audio URL
+        state.extractionResult.audio_url = data.audio_url;
+
+        // Update the UI
+        updateVoicePanelUI();
+      } catch (err) {
+        console.error('Voice generation failed:', err);
+        alert('Failed to generate voice: ' + (err.message || 'Unknown error'));
+      } finally {
+        isGeneratingVoice = false;
+        generateVoiceBtn.disabled = false;
+        generateVoiceBtnText.textContent = state.extractionResult.audio_url ? 'Regenerate Voice' : 'Generate Voice';
+      }
+    });
+
+    // ═══════════════════════════════════════════════
     // WORD PANEL RENDERING
     // ═══════════════════════════════════════════════
     const renderWordPanel = () => {
@@ -935,9 +991,7 @@
 
       scannerOverlay.style.display = 'flex';
 
-      const readAlong = readAlongCheckbox.checked;
       const prompt = promptTextarea.value;
-      const voiceSpeed = parseFloat(voiceSpeedSlider.value) || 1.0;
 
       try {
         const response = await fetch('/api/process-image', {
@@ -945,9 +999,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             image: state.imageBase64,
-            prompt: prompt,
-            read_along: readAlong,
-            voice_speed: voiceSpeed
+            prompt: prompt
           })
         });
 
@@ -958,27 +1010,21 @@
 
         const data = await response.json();
 
-        // Store extraction result globally
+        // Store extraction result globally (no audio yet — generated on demand)
         state.extractionResult = {
           items: data.items,
-          audio_url: data.audio_url,
+          audio_url: null,
           image_base64: state.imageBase64
         };
 
-        // Set up the dashboard audio player
-        audioElement.src = data.audio_url;
-        audioDownloadBtn.href = data.audio_url;
-        audioBadge.textContent = readAlong ? "跟读模式 (+ gap)" : "标准模式";
+        // Reset audio player state
+        audioElement.src = '';
+        audioDownloadBtn.href = '#';
         audioTimeCurrent.textContent = "00:00";
         audioTimeTotal.textContent = "00:00";
         audioProgressBarFill.style.width = "0%";
         isAudioPlaying = false;
         updateAudioPlayerUI();
-
-        // Sync dashboard settings
-        dashReadAlongCheckbox.checked = readAlong;
-        dashVoiceSpeedSlider.value = voiceSpeedSlider.value;
-        dashVoiceSpeedVal.textContent = `${parseFloat(voiceSpeedSlider.value).toFixed(1)}x`;
 
         // Reset FRDic state for new extraction
         state.frdicSelectedBookId = null;
@@ -989,7 +1035,7 @@
         showDashboardView();
       } catch (err) {
         console.error("Processing failed:", err);
-        showError(err.message || "Failed to process the image and generate audio.");
+        showError(err.message || "Failed to process the image.");
       } finally {
         state.isProcessing = false;
         scannerOverlay.style.display = 'none';

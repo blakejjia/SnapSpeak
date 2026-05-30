@@ -1,5 +1,4 @@
 import os
-import base64
 from typing import List
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
@@ -15,7 +14,7 @@ class ExtractionResponse(BaseModel):
 class LangChainService:
     def __init__(self):
         # Read the model from environment variables, default to gemini-2.0-flash-lite-preview-02-05
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite-preview-02-05")
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
         
     async def extract_text_from_image(self, base64_image: str, prompt: str) -> ExtractionResponse:
         """

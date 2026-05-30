@@ -6,13 +6,12 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+from services.langchain_service import langchain_service
+from services.audio_service import audio_service
+from services.frdic_service import frdic_service
 
 # Load environment variables
 load_dotenv()
-
-from services.langchain_service import langchain_service, ExtractionResponse
-from services.audio_service import audio_service
-from services.frdic_service import frdic_service
 
 app = FastAPI(title="LinguaSnap API")
 
@@ -41,46 +40,66 @@ async def read_index():
 class ProcessImageRequest(BaseModel):
     image: str = Field(description="Base64 encoded string of the image.")
     prompt: str = Field(default="Extract all vocabulary words and phrases from this image", description="Prompt instructing AI what to extract.")
-    read_along: bool = Field(default=False, description="If True, adds extra silence gap for reading along.")
-    voice_speed: float = Field(default=1.0, description="Speech rate/speed factor (e.g. 0.5 to 2.0).")
 
 class ProcessImageResponse(BaseModel):
     items: list = Field(description="List of extracted text items with languages.")
-    audio_url: str = Field(description="Relative API URL to retrieve the stitched audio file.")
 
 @app.post("/api/process-image", response_model=ProcessImageResponse)
 async def process_image(request: ProcessImageRequest):
     try:
-        # 1. OCR / Text extraction using LangChain and Gemini
+        # OCR / Text extraction using LangChain and Gemini
         extraction = await langchain_service.extract_text_from_image(
             base64_image=request.image,
             prompt=request.prompt
         )
-        
+
         if not extraction.items:
             raise HTTPException(status_code=422, detail="No text items could be extracted from the image.")
-            
-        # 2. TTS and stitching
-        audio_filepath = await audio_service.generate_stitched_audio(
-            items=extraction.items,
-            read_along=request.read_along,
-            voice_speed=request.voice_speed
-        )
-        
-        # 3. Formulate retrieval URL
-        filename = os.path.basename(audio_filepath)
-        audio_url = f"/api/audio/{filename}"
-        
+
         return ProcessImageResponse(
-            items=[item.model_dump() for item in extraction.items],
-            audio_url=audio_url
+            items=[item.model_dump() for item in extraction.items]
         )
-        
+
     except ValueError as ve:
-        # Catch API key config issues or bad values
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process image: {str(e)}")
+
+
+class GenerateAudioRequest(BaseModel):
+    items: list = Field(description="List of extracted text items with languages (each having text and language fields).")
+    read_along: bool = Field(default=False, description="If True, adds extra silence gap for reading along.")
+    voice_speed: float = Field(default=1.0, description="Speech rate/speed factor (e.g. 0.5 to 2.0).")
+
+class GenerateAudioResponse(BaseModel):
+    audio_url: str = Field(description="Relative API URL to retrieve the stitched audio file.")
+
+@app.post("/api/generate-audio", response_model=GenerateAudioResponse)
+async def generate_audio(request: GenerateAudioRequest):
+    try:
+        from services.langchain_service import ExtractedItem
+
+        # Convert dict items to ExtractedItem objects
+        items = [ExtractedItem(**item) for item in request.items]
+
+        if not items:
+            raise HTTPException(status_code=422, detail="No text items provided for audio generation.")
+
+        audio_filepath = await audio_service.generate_stitched_audio(
+            items=items,
+            read_along=request.read_along,
+            voice_speed=request.voice_speed
+        )
+
+        filename = os.path.basename(audio_filepath)
+        audio_url = f"/api/audio/{filename}"
+
+        return GenerateAudioResponse(audio_url=audio_url)
+
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate audio: {str(e)}")
 
 @app.get("/api/audio/{filename}")
 def get_audio(filename: str):
