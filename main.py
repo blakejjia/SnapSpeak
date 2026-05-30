@@ -6,12 +6,14 @@ from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+
+# Load environment variables BEFORE importing service singletons
+# so they can read GEMINI_API_KEY, EUDIC_API_TOKEN, etc. from .env
+load_dotenv()
+
 from services.langchain_service import langchain_service
 from services.audio_service import audio_service
 from services.frdic_service import frdic_service
-
-# Load environment variables
-load_dotenv()
 
 app = FastAPI(title="LinguaSnap API")
 

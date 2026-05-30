@@ -7,20 +7,25 @@ FRDIC_BASE_URL = "https://api.frdic.com/api/open/v1/studylist"
 class FRDicService:
     """Proxy service for the FRDic (法语助手/欧路词典) OpenAPI.
 
-    Reads EUDIC_API_TOKEN from environment on startup.
+    Reads EUDIC_API_TOKEN lazily from the environment on each request.
     If not set, the frontend can call set_token() to provide one at runtime.
     """
 
     def __init__(self):
-        self.token = os.getenv("EUDIC_API_TOKEN")  # None if not set
+        self._token_override = None  # Set via set_token() at runtime
         self.base_url = FRDIC_BASE_URL
+
+    @property
+    def token(self) -> str | None:
+        """Return the override token if set, otherwise fall back to env var."""
+        return self._token_override or os.getenv("EUDIC_API_TOKEN")
 
     def has_token(self) -> bool:
         return bool(self.token)
 
     def set_token(self, token: str) -> None:
         """Set or update the API token at runtime (e.g. from frontend input)."""
-        self.token = token
+        self._token_override = token
 
     def _headers(self) -> dict:
         return {
