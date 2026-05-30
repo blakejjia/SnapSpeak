@@ -1,4 +1,5 @@
 import os
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -11,8 +12,9 @@ load_dotenv()
 
 from services.langchain_service import langchain_service, ExtractionResponse
 from services.audio_service import audio_service
+from services.frdic_service import frdic_service
 
-app = FastAPI(title="SnapSpeak API")
+app = FastAPI(title="LinguaSnap API")
 
 # Configure CORS so frontend can communicate with backend
 app.add_middleware(
@@ -95,6 +97,85 @@ def get_audio(filename: str):
         raise HTTPException(status_code=404, detail="Audio file not found")
         
     return FileResponse(filepath, media_type="audio/mpeg", filename=filename)
+
+# ── FRDic (法语助手/欧路词典) OpenAPI proxy endpoints ──
+
+
+class FRDicTokenStatusResponse(BaseModel):
+    has_token: bool = Field(description="Whether an FRDic API token is configured.")
+
+
+class FRDicSetTokenRequest(BaseModel):
+    token: str = Field(description="FRDic API token (starts with 'NIS ').")
+
+
+class FRDicListBooksRequest(BaseModel):
+    language: str = Field(description="Language code: en, fr, de, es.")
+
+
+class FRDicCreateBookRequest(BaseModel):
+    language: str = Field(description="Language code: en, fr, de, es.")
+    name: str = Field(description="Name of the new vocabulary book.")
+
+
+class FRDicAddWordsRequest(BaseModel):
+    language: str = Field(description="Language code: en, fr, de, es.")
+    category_id: str = Field(description="Target vocabulary book ID.")
+    words: list[str] = Field(description="List of words to upload.")
+
+
+@app.post("/api/frdic/token-status", response_model=FRDicTokenStatusResponse)
+async def frdic_token_status():
+    return FRDicTokenStatusResponse(has_token=frdic_service.has_token())
+
+
+@app.post("/api/frdic/set-token")
+async def frdic_set_token(request: FRDicSetTokenRequest):
+    frdic_service.set_token(request.token)
+    return {"message": "Token set successfully."}
+
+
+@app.post("/api/frdic/list-books")
+async def frdic_list_books(request: FRDicListBooksRequest):
+    try:
+        if not frdic_service.has_token():
+            raise HTTPException(status_code=400, detail="FRDic API token is not configured. Set EUDIC_API_TOKEN in .env or enter it in the app.")
+        return await frdic_service.list_books(request.language)
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"FRDic API error: {e.response.text}")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"FRDic API unreachable: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/frdic/create-book")
+async def frdic_create_book(request: FRDicCreateBookRequest):
+    try:
+        if not frdic_service.has_token():
+            raise HTTPException(status_code=400, detail="FRDic API token is not configured.")
+        return await frdic_service.create_book(request.language, request.name)
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"FRDic API error: {e.response.text}")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"FRDic API unreachable: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/frdic/add-words")
+async def frdic_add_words(request: FRDicAddWordsRequest):
+    try:
+        if not frdic_service.has_token():
+            raise HTTPException(status_code=400, detail="FRDic API token is not configured.")
+        return await frdic_service.add_words(request.language, request.category_id, request.words)
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"FRDic API error: {e.response.text}")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"FRDic API unreachable: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn
