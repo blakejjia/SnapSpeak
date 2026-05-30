@@ -1,4 +1,0 @@
-# Nixpacks configuration to ensure ffmpeg is installed on deploy
-
-[phases.setup]
-nixPkgs = ["...", "ffmpeg"]
