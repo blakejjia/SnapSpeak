@@ -6,27 +6,22 @@ import edge_tts
 from pydub import AudioSegment
 from services.langchain_service import ExtractedItem
 
-# Default voice mapping for languages
-VOICE_MAPPING = {
-    "en": "en-US-EmmaNeural",
-    "zh": "zh-CN-XiaoxiaoNeural",
-    "ja": "ja-JP-NanamiNeural",
-    "ko": "ko-KR-SunHiNeural",
-    "fr": "fr-FR-DeniseNeural",
-    "es": "es-ES-ElviraNeural",
-    "de": "de-DE-KatjaNeural",
-    "ru": "ru-RU-SvetlanaNeural",
-    "it": "it-IT-ElsaNeural",
-}
+# French neural voice for French text
+FRENCH_VOICE = "fr-FR-DeniseNeural"
+# Default fallback voice for non-French items
+DEFAULT_VOICE = "en-US-EmmaNeural"
 
 class AudioService:
     def _get_voice(self, lang: str) -> str:
         """
-        Maps a language code to a high-quality edge-tts neural voice.
+        Maps a language code to a neural voice.
+        French items get a native French voice; everything else uses a default fallback.
         """
         # Normalize: e.g., 'en-US' -> 'en', 'ZH' -> 'zh'
         lang_normalized = lang.lower().split('-')[0].split('_')[0]
-        return VOICE_MAPPING.get(lang_normalized, "en-US-EmmaNeural")
+        if lang_normalized == "fr":
+            return FRENCH_VOICE
+        return DEFAULT_VOICE
 
     async def generate_stitched_audio(self, items: List[ExtractedItem], read_along: bool, voice_speed: float = 1.0) -> bytes:
         """

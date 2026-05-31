@@ -29,7 +29,7 @@ const speakText = (text, lang) => {
       'en': 'en-US', 'zh': 'zh-CN', 'ja': 'ja-JP', 'ko': 'ko-KR',
       'fr': 'fr-FR', 'es': 'es-ES', 'de': 'de-DE', 'ru': 'ru-RU', 'it': 'it-IT'
     };
-    const targetLang = langCodeMap[lang.toLowerCase()] || lang;
+    const targetLang = langCodeMap[lang.toLowerCase()] || 'fr-FR';
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = targetLang;
     const speedSlider = document.getElementById('dashboard-voice-speed-slider');
@@ -70,10 +70,10 @@ const state = {
   // Navigation
   activePanel: 'voice',
 
-  // FRDic
+  // FRDic — French only
   frdicHasToken: false,
   frdicBooks: [],
-  frdicSelectedLanguage: null,
+  frdicSelectedLanguage: 'fr',
   frdicSelectedBookId: null,
   frdicSelectedWords: new Set(),
   frdicIsUploading: false,
@@ -145,7 +145,6 @@ const frdicEmptyState = document.getElementById('frdic-empty-state');
 const frdicApiKeyInput = document.getElementById('frdic-api-key-input');
 const frdicSaveTokenBtn = document.getElementById('frdic-save-token-btn');
 const frdicAuthStatus = document.getElementById('frdic-auth-status');
-const frdicLanguageSelect = document.getElementById('frdic-language-select');
 const frdicBookList = document.getElementById('frdic-book-list');
 const frdicNewBookName = document.getElementById('frdic-new-book-name');
 const frdicCreateBtn = document.getElementById('frdic-create-btn');
@@ -156,14 +155,13 @@ const frdicNoWordsMsg = document.getElementById('frdic-no-words-msg');
 const frdicUploadBtn = document.getElementById('frdic-upload-btn');
 const frdicUploadBtnText = document.getElementById('frdic-upload-btn-text');
 const frdicStatus = document.getElementById('frdic-status');
-const frdicUnsupportedNote = document.getElementById('frdic-unsupported-note');
 
 // ═══════════════════════════════════════════════
 // INITIALIZATION — Settings from localStorage
 // ═══════════════════════════════════════════════
 const initSettings = () => {
   const savedPrompt = localStorage.getItem(PROMPT_KEY);
-  promptTextarea.value = savedPrompt !== null ? savedPrompt : 'Extract all vocabulary words and sentences from this image.';
+  promptTextarea.value = savedPrompt !== null ? savedPrompt : 'Extract all French words from this image. Use the infinitive form (动词原形) for verbs. Do NOT include articles like "un/une" or example phrases. Return only single words — no sentences or examples.';
 
   const savedReadAlong = localStorage.getItem(READ_ALONG_KEY);
   const raVal = savedReadAlong === 'true';
@@ -501,7 +499,7 @@ const updateVoicePanelUI = () => {
     voiceEmptyState.style.display = 'none';
     audioElement.src = state.extractionResult.audio_url;
     audioDownloadBtn.href = state.extractionResult.audio_url;
-    audioDownloadBtn.download = 'linguasnap_audio.mp3';
+    audioDownloadBtn.download = 'snapspeak_audio.mp3';
     audioBadge.textContent = dashReadAlongCheckbox.checked ? '跟读模式 (+ gap)' : '标准模式';
     audioTimeCurrent.textContent = '00:00';
     audioTimeTotal.textContent = '00:00';
@@ -722,15 +720,8 @@ reAnalysisBtn.addEventListener('click', () => {
 });
 
 // ═══════════════════════════════════════════════
-// FRDIC PANEL LOGIC
+// FRDIC PANEL LOGIC — French-only
 // ═══════════════════════════════════════════════
-const FRDIC_SUPPORTED = ['en', 'fr', 'de', 'es'];
-
-const languageName = (code) => {
-  const names = { en: 'English', fr: 'French', de: 'German', es: 'Spanish',
-                  zh: 'Chinese', ja: 'Japanese', ko: 'Korean', ru: 'Russian', it: 'Italian' };
-  return names[code] || code.toUpperCase();
-};
 
 const showFRDicStatus = (msg, type) => {
   frdicStatus.textContent = msg;
@@ -746,7 +737,6 @@ const updateFRDicUploadBtn = () => {
 // Initialize FRDic panel when switched to
 const initFRDicPanel = () => {
   if (!state.extractionResult || !state.extractionResult.items) {
-    // No extraction yet
     frdicAuthBox.style.display = 'none';
     frdicMainUi.style.display = 'none';
     frdicEmptyState.style.display = 'flex';
@@ -754,13 +744,14 @@ const initFRDicPanel = () => {
   }
 
   frdicEmptyState.style.display = 'none';
+  state.frdicSelectedLanguage = 'fr';
 
-  // Check token status first
   checkFRDicTokenStatus().then(() => {
     if (state.frdicHasToken) {
       frdicAuthBox.style.display = 'none';
       frdicMainUi.style.display = 'block';
-      populateFRDicLanguageSelector();
+      loadFRDicBooks();
+      renderFRDicWordCheckboxes();
     } else {
       frdicAuthBox.style.display = 'block';
       frdicMainUi.style.display = 'none';
@@ -799,7 +790,9 @@ frdicSaveTokenBtn.addEventListener('click', async () => {
       state.frdicHasToken = true;
       frdicAuthBox.style.display = 'none';
       frdicMainUi.style.display = 'block';
-      populateFRDicLanguageSelector();
+      state.frdicSelectedLanguage = 'fr';
+      loadFRDicBooks();
+      renderFRDicWordCheckboxes();
     } else {
       const err = await resp.json();
       throw new Error(err.detail || 'Failed to save token');
@@ -811,66 +804,15 @@ frdicSaveTokenBtn.addEventListener('click', async () => {
   }
 });
 
-// Populate language selector from extraction result
-const populateFRDicLanguageSelector = () => {
-  if (!state.extractionResult || !state.extractionResult.items) return;
-
-  const allLanguages = [...new Set(state.extractionResult.items.map(i => i.language.toLowerCase()))];
-  const supportedLangs = allLanguages.filter(l => FRDIC_SUPPORTED.includes(l));
-  const unsupportedLangs = allLanguages.filter(l => !FRDIC_SUPPORTED.includes(l));
-
-  frdicLanguageSelect.innerHTML = '<option value="">-- Select a language --</option>' +
-    supportedLangs.map(l => `<option value="${l}">${languageName(l)} (${l.toUpperCase()})</option>`).join('');
-
-  frdicUnsupportedNote.style.display = unsupportedLangs.length > 0 ? 'block' : 'none';
-  if (unsupportedLangs.length > 0) {
-    frdicUnsupportedNote.textContent = `Note: ${unsupportedLangs.map(l => languageName(l)).join(', ')} not supported by FRDic (en, fr, de, es only).`;
-  }
-
-  // Auto-select the most common supported language
-  if (supportedLangs.length > 0) {
-    const langCounts = {};
-    state.extractionResult.items.forEach(item => {
-      const l = item.language.toLowerCase();
-      if (FRDIC_SUPPORTED.includes(l)) langCounts[l] = (langCounts[l] || 0) + 1;
-    });
-    const bestLang = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0][0];
-    frdicLanguageSelect.value = bestLang;
-    state.frdicSelectedLanguage = bestLang;
-    loadFRDicBooks();
-    renderFRDicWordCheckboxes();
-  } else {
-    state.frdicSelectedLanguage = null;
-    frdicBookList.innerHTML = '<p class="frdic-book-placeholder">No FRDic-supported languages found in extracted words.</p>';
-    frdicWordCheckboxes.innerHTML = '';
-  }
-};
-
-// Language select change
-frdicLanguageSelect.addEventListener('change', () => {
-  state.frdicSelectedLanguage = frdicLanguageSelect.value || null;
-  state.frdicSelectedBookId = null;
-  if (state.frdicSelectedLanguage) {
-    loadFRDicBooks();
-    renderFRDicWordCheckboxes();
-  } else {
-    frdicBookList.innerHTML = '<p class="frdic-book-placeholder">Select a language to load your books</p>';
-    frdicWordCheckboxes.innerHTML = '';
-    updateFRDicUploadBtn();
-  }
-});
-
-// Load books for selected language
+// Load French books
 const loadFRDicBooks = async () => {
-  if (!state.frdicSelectedLanguage) return;
-
   frdicBookList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; padding: 0.75rem;">Loading books...</p>';
 
   try {
     const resp = await fetch('/api/frdic/list-books', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ language: state.frdicSelectedLanguage })
+      body: '{}'
     });
     if (!resp.ok) {
       const err = await resp.json();
@@ -900,7 +842,6 @@ const renderFRDicBookList = () => {
     </div>
   `).join('');
 
-  // Click handler for book selection
   frdicBookList.querySelectorAll('.frdic-book-item').forEach(el => {
     el.addEventListener('click', () => {
       state.frdicSelectedBookId = el.dataset.bookId;
@@ -911,10 +852,10 @@ const renderFRDicBookList = () => {
   });
 };
 
-// Create new book
+// Create new French book
 frdicCreateBtn.addEventListener('click', async () => {
   const name = frdicNewBookName.value.trim();
-  if (!name || !state.frdicSelectedLanguage) return;
+  if (!name) return;
 
   frdicCreateBtn.disabled = true;
   frdicCreateStatus.style.display = 'none';
@@ -923,7 +864,7 @@ frdicCreateBtn.addEventListener('click', async () => {
     const resp = await fetch('/api/frdic/create-book', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ language: state.frdicSelectedLanguage, name })
+      body: JSON.stringify({ name })
     });
     if (!resp.ok) {
       const err = await resp.json();
@@ -936,7 +877,6 @@ frdicCreateBtn.addEventListener('click', async () => {
     frdicCreateStatus.className = 'frdic-status-message success';
     frdicCreateStatus.style.display = 'block';
 
-    // Reload books and auto-select the new one
     await loadFRDicBooks();
     if (newBook && newBook.id) {
       state.frdicSelectedBookId = String(newBook.id);
@@ -952,7 +892,7 @@ frdicCreateBtn.addEventListener('click', async () => {
   }
 });
 
-// Render word checkboxes filtered by selected language
+// Render French word checkboxes only
 const renderFRDicWordCheckboxes = () => {
   if (!state.extractionResult || !state.extractionResult.items) {
     frdicWordCheckboxes.innerHTML = '';
@@ -960,16 +900,12 @@ const renderFRDicWordCheckboxes = () => {
     return;
   }
 
-  const items = state.extractionResult.items;
-  const selLang = state.frdicSelectedLanguage;
+  // Only show French words
+  const frenchItems = state.extractionResult.items.filter(i => i.language.toLowerCase() === 'fr');
 
-  // Filter items by selected language (or show all FRDic-supported if no lang selected)
-  const filteredItems = selLang
-    ? items.filter(i => i.language.toLowerCase() === selLang)
-    : items.filter(i => FRDIC_SUPPORTED.includes(i.language.toLowerCase()));
-
-  if (filteredItems.length === 0) {
+  if (frenchItems.length === 0) {
     frdicWordCheckboxes.innerHTML = '';
+    frdicNoWordsMsg.textContent = 'No French words found in the extraction.';
     frdicNoWordsMsg.style.display = 'block';
     frdicQuickSelect.innerHTML = '';
     updateFRDicUploadBtn();
@@ -978,40 +914,29 @@ const renderFRDicWordCheckboxes = () => {
 
   frdicNoWordsMsg.style.display = 'none';
 
-  // Build quick-select chips
-  const langGroups = {};
-  filteredItems.forEach(item => {
-    const l = item.language.toLowerCase();
-    if (!langGroups[l]) langGroups[l] = [];
-    langGroups[l].push(item.text);
-  });
-
-  let chipsHtml = '';
-  for (const [lang, words] of Object.entries(langGroups)) {
-    chipsHtml += `<button class="quick-select-chip lang-${lang}" data-lang="${lang}">Select all ${lang.toUpperCase()} (${words.length})</button>`;
-  }
-  chipsHtml += `<button class="quick-select-chip" data-action="all">Select All (${filteredItems.length})</button>`;
-  chipsHtml += `<button class="quick-select-chip" data-action="none">Deselect All</button>`;
-  frdicQuickSelect.innerHTML = chipsHtml;
+  // Quick-select chips
+  frdicQuickSelect.innerHTML = `
+    <button class="quick-select-chip lang-fr" data-action="all">Select All (${frenchItems.length})</button>
+    <button class="quick-select-chip" data-action="none">Deselect All</button>
+  `;
 
   // Build checkboxes
-  frdicWordCheckboxes.innerHTML = filteredItems.map((item, idx) => {
-    const langClass = `lang-${item.language.toLowerCase()}`;
-    const wordKey = `${item.text}::${item.language}`;
+  frdicWordCheckboxes.innerHTML = frenchItems.map((item, idx) => {
+    const wordKey = `${item.text}::fr`;
     const checked = state.frdicSelectedWords.has(wordKey);
     return `
-      <label class="frdic-word-checkbox-item ${langClass}">
+      <label class="frdic-word-checkbox-item lang-fr">
         <input type="checkbox" data-word-key="${escapeHtml(wordKey)}" data-text="${escapeHtml(item.text)}" ${checked ? 'checked' : ''}>
         <span class="frdic-word-text">${escapeHtml(item.text)}</span>
-        <span class="frdic-word-lang-badge">${item.language.toUpperCase()}</span>
+        <span class="frdic-word-lang-badge">FR</span>
       </label>
     `;
   }).join('');
 
-  // Pre-select all by default (only on first render)
-  const allUnchecked = filteredItems.every(item => !state.frdicSelectedWords.has(`${item.text}::${item.language}`));
+  // Pre-select all by default
+  const allUnchecked = frenchItems.every(item => !state.frdicSelectedWords.has(`${item.text}::fr`));
   if (allUnchecked) {
-    filteredItems.forEach(item => state.frdicSelectedWords.add(`${item.text}::${item.language}`));
+    frenchItems.forEach(item => state.frdicSelectedWords.add(`${item.text}::fr`));
     frdicWordCheckboxes.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
   }
 
@@ -1030,9 +955,7 @@ const renderFRDicWordCheckboxes = () => {
   // Quick-select chip handlers
   frdicQuickSelect.querySelectorAll('.quick-select-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      const lang = chip.dataset.lang;
       const action = chip.dataset.action;
-
       if (action === 'all') {
         frdicWordCheckboxes.querySelectorAll('input[type="checkbox"]').forEach(cb => {
           cb.checked = true;
@@ -1043,24 +966,6 @@ const renderFRDicWordCheckboxes = () => {
           cb.checked = false;
           state.frdicSelectedWords.delete(cb.dataset.wordKey);
         });
-      } else if (lang) {
-        // Select/deselect all for a specific language
-        const checkboxes = frdicWordCheckboxes.querySelectorAll('input[type="checkbox"]');
-        const langWordKeys = [];
-        checkboxes.forEach(cb => {
-          if (cb.dataset.wordKey.toLowerCase().endsWith(`::${lang}`)) {
-            langWordKeys.push(cb.dataset.wordKey);
-          }
-        });
-        // Toggle: if all are already selected, deselect; otherwise select all
-        const allSelected = langWordKeys.every(k => state.frdicSelectedWords.has(k));
-        checkboxes.forEach(cb => {
-          if (cb.dataset.wordKey.toLowerCase().endsWith(`::${lang}`)) {
-            cb.checked = !allSelected;
-            if (allSelected) state.frdicSelectedWords.delete(cb.dataset.wordKey);
-            else state.frdicSelectedWords.add(cb.dataset.wordKey);
-          }
-        });
       }
       updateFRDicUploadBtn();
     });
@@ -1069,7 +974,7 @@ const renderFRDicWordCheckboxes = () => {
   updateFRDicUploadBtn();
 };
 
-// Upload words to FRDic
+// Upload French words to FRDic
 frdicUploadBtn.addEventListener('click', async () => {
   if (state.frdicIsUploading || !state.frdicSelectedBookId || state.frdicSelectedWords.size === 0) return;
 
@@ -1077,7 +982,6 @@ frdicUploadBtn.addEventListener('click', async () => {
   updateFRDicUploadBtn();
   frdicUploadBtnText.textContent = 'Uploading...';
 
-  // Get the actual words (strip the ::lang suffix)
   const words = Array.from(state.frdicSelectedWords).map(k => k.split('::')[0]);
 
   try {
@@ -1085,7 +989,6 @@ frdicUploadBtn.addEventListener('click', async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        language: state.frdicSelectedLanguage,
         category_id: state.frdicSelectedBookId,
         words: words
       })
@@ -1096,7 +999,7 @@ frdicUploadBtn.addEventListener('click', async () => {
     }
     const data = await resp.json();
     const bookName = state.frdicBooks.find(b => String(b.id) === state.frdicSelectedBookId)?.name || 'book';
-    showFRDicStatus(`Successfully uploaded ${words.length} words to "${bookName}"!`, 'success');
+    showFRDicStatus(`Successfully uploaded ${words.length} French words to "${bookName}"!`, 'success');
   } catch (err) {
     showFRDicStatus(`Error: ${err.message}`, 'error');
   } finally {

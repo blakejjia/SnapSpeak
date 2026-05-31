@@ -15,7 +15,7 @@ from services.langchain_service import langchain_service
 from services.audio_service import audio_service
 from services.frdic_service import frdic_service
 
-app = FastAPI(title="LinguaSnap API")
+app = FastAPI(title="SnapSpeak API")
 
 # Configure CORS so frontend can communicate with backend
 app.add_middleware(
@@ -110,16 +110,14 @@ class FRDicSetTokenRequest(BaseModel):
 
 
 class FRDicListBooksRequest(BaseModel):
-    language: str = Field(description="Language code: en, fr, de, es.")
+    pass  # Always uses French (fr)
 
 
 class FRDicCreateBookRequest(BaseModel):
-    language: str = Field(description="Language code: en, fr, de, es.")
     name: str = Field(description="Name of the new vocabulary book.")
 
 
 class FRDicAddWordsRequest(BaseModel):
-    language: str = Field(description="Language code: en, fr, de, es.")
     category_id: str = Field(description="Target vocabulary book ID.")
     words: list[str] = Field(description="List of words to upload.")
 
@@ -140,7 +138,7 @@ async def frdic_list_books(request: FRDicListBooksRequest):
     try:
         if not frdic_service.has_token():
             raise HTTPException(status_code=400, detail="FRDic API token is not configured. Set EUDIC_API_TOKEN in .env or enter it in the app.")
-        return await frdic_service.list_books(request.language)
+        return await frdic_service.list_books("fr")
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=f"FRDic API error: {e.response.text}")
     except httpx.RequestError as e:
@@ -154,7 +152,7 @@ async def frdic_create_book(request: FRDicCreateBookRequest):
     try:
         if not frdic_service.has_token():
             raise HTTPException(status_code=400, detail="FRDic API token is not configured.")
-        return await frdic_service.create_book(request.language, request.name)
+        return await frdic_service.create_book("fr", request.name)
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=f"FRDic API error: {e.response.text}")
     except httpx.RequestError as e:
@@ -168,7 +166,7 @@ async def frdic_add_words(request: FRDicAddWordsRequest):
     try:
         if not frdic_service.has_token():
             raise HTTPException(status_code=400, detail="FRDic API token is not configured.")
-        return await frdic_service.add_words(request.language, request.category_id, request.words)
+        return await frdic_service.add_words("fr", request.category_id, request.words)
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=f"FRDic API error: {e.response.text}")
     except httpx.RequestError as e:

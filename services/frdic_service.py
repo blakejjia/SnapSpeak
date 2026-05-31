@@ -31,6 +31,7 @@ class FRDicService:
         return {
             "Authorization": self.token,
             "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         }
 
     async def _request(self, method: str, path: str, **kwargs) -> dict:
@@ -59,7 +60,7 @@ class FRDicService:
         return data.get("data", data)
 
     async def add_words(
-        self, language: str, category_id: str, words: list[str]
+        self, language: str = "fr", category_id: str = None, words: list[str] = None
     ) -> dict:
         """Bulk-add words to a vocabulary book. Returns import status message."""
         return await self._request(

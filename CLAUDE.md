@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LinguaSnap is a **single-command Python web app** (no Node.js) that turns pictures of text into multilingual voice guides and vocabulary book entries. It uses LangChain + Google Gemini for OCR/structured extraction, Microsoft Edge Neural TTS for voice synthesis, pydub for audio stitching, and the FRDic OpenAPI for vocabulary book uploads. The frontend is vanilla HTML/CSS/JS served statically by FastAPI.
+SnapSpeak is a **single-command Python web app** (no Node.js) focused on **French vocabulary learning**. It turns pictures of French text into voice guides and FRDic vocabulary book entries. It uses LangChain + Google Gemini for OCR/structured extraction (focused on French), Microsoft Edge Neural TTS for French voice synthesis, pydub for audio stitching, and the FRDic OpenAPI for vocabulary book uploads. The frontend is vanilla HTML/CSS/JS served statically by FastAPI.
 
 ## Commands
 

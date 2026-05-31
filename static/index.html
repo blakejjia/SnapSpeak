@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LinguaSnap - Multilingual Picture to Voice & Vocabulary Builder</title>
+  <title>SnapSpeak - French Vocabulary Builder</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,8 +23,8 @@
       <div class="logo-section">
         <span class="logo-icon" role="img" aria-label="camera">📸</span>
         <div>
-          <h1 class="logo-text">LinguaSnap</h1>
-          <p class="subtitle">Multilingual Picture to Voice & Vocabulary Builder</p>
+          <h1 class="logo-text">SnapSpeak</h1>
+          <p class="subtitle">French Vocabulary Builder — Snap, Listen, Learn</p>
         </div>
       </div>
       <div class="header-actions" id="header-actions" style="display: none;">
@@ -102,7 +102,7 @@
           <!-- User OCR Prompt Instructions -->
           <div class="form-group">
             <label class="form-label">AI Extraction Request / Prompt</label>
-            <textarea class="input-textarea" id="prompt-textarea" placeholder="e.g. Extract words and translate. Make sure to specify what words you want."></textarea>
+            <textarea class="input-textarea" id="prompt-textarea" placeholder="e.g. Extract all French words, use infinitive form for verbs, skip articles like un/une."></textarea>
           </div>
 
           <!-- Hidden Canvas for capturing camera frame -->
@@ -124,22 +124,22 @@
         <section class="glass-panel welcome-panel">
           <div class="welcome-content">
             <span class="welcome-icon">🖼️</span>
-            <h2 class="welcome-heading">Upload a picture to get started</h2>
+            <h2 class="welcome-heading">Snap a photo to learn French</h2>
             <p class="welcome-text">
-              Snap a photo of any text — textbook pages, signs, menus, flashcards — and LinguaSnap will extract the words, generate multilingual voice guides, and let you upload them to your vocabulary books.
+              Snap a photo of any French text — textbook pages, signs, menus, flashcards — and SnapSpeak will extract the words, generate French voice guides, and let you upload them to your FRDic vocabulary books.
             </p>
             <div class="welcome-features">
               <div class="welcome-feature-item">
                 <span class="welcome-feature-icon">🧠</span>
-                <span>AI-powered OCR & language detection</span>
+                <span>AI-powered French OCR & extraction</span>
               </div>
               <div class="welcome-feature-item">
                 <span class="welcome-feature-icon">🎙️</span>
-                <span>Neural voice synthesis in 9 languages</span>
+                <span>Natural French neural voice synthesis</span>
               </div>
               <div class="welcome-feature-item">
                 <span class="welcome-feature-icon">📚</span>
-                <span>Direct upload to FRDic vocabulary books</span>
+                <span>Direct upload to FRDic (法语助手) vocabulary books</span>
               </div>
             </div>
           </div>
@@ -276,8 +276,7 @@
               </div>
               <p class="frdic-auth-help">
                 Get your token at <a href="https://my.frdic.com/OpenAPI/Authorization" target="_blank" rel="noopener">my.frdic.com/OpenAPI/Authorization</a>
-                (for 法语助手) or <a href="https://my.eudic.net/OpenAPI/Authorization" target="_blank" rel="noopener">my.eudic.net/OpenAPI/Authorization</a>
-                (for 欧路词典).
+                (for 法语助手 / FRDic).
               </p>
               <div id="frdic-auth-status" style="display: none; margin-top: 0.75rem;"></div>
             </div>
@@ -285,20 +284,9 @@
             <!-- FRDic Main UI (shown when token is set) -->
             <div id="frdic-main-ui" style="display: none;">
 
-              <!-- Language Selector -->
-              <div class="form-group">
-                <label class="form-label">Target Language</label>
-                <select id="frdic-language-select" class="frdic-language-select">
-                  <option value="">-- Select a language --</option>
-                </select>
-                <p id="frdic-unsupported-note" style="display: none; font-size: 0.75rem; color: var(--warning); margin-top: 0.25rem;">
-                  Some extracted languages are not supported by FRDic (only en, fr, de, es are supported).
-                </p>
-              </div>
-
               <!-- Book Selection -->
               <div class="form-group">
-                <label class="form-label">Vocabulary Book</label>
+                <label class="form-label">Vocabulary Book (French)</label>
                 <div id="frdic-book-list" class="frdic-book-list">
                   <p class="frdic-book-placeholder">Select a language to load your books</p>
                 </div>
@@ -308,7 +296,7 @@
               <div class="form-group">
                 <label class="form-label">Or Create New Book</label>
                 <div class="frdic-create-form">
-                  <input type="text" id="frdic-new-book-name" class="frdic-create-input" placeholder="e.g. FR151, Chapter 3 Vocab...">
+                  <input type="text" id="frdic-new-book-name" class="frdic-create-input" placeholder="e.g. FR101, Leçon 3...">
                   <button id="frdic-create-btn" class="btn btn-secondary" style="flex: 0 0 auto; padding: 0.65rem 1.25rem;">Create</button>
                 </div>
                 <div id="frdic-create-status" style="display: none; font-size: 0.8rem; margin-top: 0.35rem;"></div>
